@@ -1,14 +1,29 @@
-import { Telegraf, session } from "telegraf";
+import { Telegraf, session } from "telegraf"
+
 import { Connection, Keypair, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, sendAndConfirmTransaction } from '@solana/web3.js';
 import { VolumeByToken, ChainInfo, UserInfo, OpenMonitors, InfoByAmmId, createUser, deleteUser, getUserInfoByTgid, doesUserExist, findOneAndUpdateUserInfo, userinfoSchema, chainInfoSchema, openMonitorsSchema } from "./schemas.js";
-import { getHiddenData, ifAdmin, getMenuMessageId, deleteMessage, getUserId, getUserInfoOrCreate } from './tgSystem.js'; 
+
+//import { getHiddenData, getMenuMessageId, ifAdmin } from "./tgSystem.js"
+// Import the utility functions from the module
+import { getHiddenData, ifAdmin, getMenuMessageId, deleteMessage, getUserId, getUserInfoOrCreate } from './tgSystem.js';
+// Adjust the import path as per your file structure
+
 import { stringTg, customToFixed, getTokenInfo, getDividerByDecimals, verifyUserMonitors, getProviderByChain, getCoinBalances, getGasPrice, getAmountOut, getWrappedCoinByChain, getCoinNameByChain, getRouterAddressByChain, getExplorerByChain, getAmountIn, editTokenBuyMenu, getBalance, getAddressFromPrivatekey, getSolanaTokenInfo, editSolanaTokenBuyMenu, getRaydiumAmountOut, swapRaydiumExactIn } from "./blockchainSystem.js";
-import mongoose from "mongoose";
-import { ethers } from "ethers";
-import BigNumber from "bignumber.js/bignumber.js"; 
-import { base58 } from "ethers/lib/utils.js";
+
+import _ from "lodash";
+
+import mongoose from "mongoose"
+
+import { ethers } from "ethers"
+
 import contractABI from "./abi/contractABI.json" assert { type: "json" }
+
+import BigNumber from "bignumber.js/bignumber.js"; 
 import delugerouter from "./abi/delugerouter.json" assert { type: "json" }
+
+import { base58 } from "ethers/lib/utils.js";
+
+
 const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
 
 const token = '6570174976:AAFKv6aT3ouXs46s69mJpXo847ymT3BzT1U';
