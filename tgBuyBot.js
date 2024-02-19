@@ -16,9 +16,12 @@ import mongoose from "mongoose"
 
 import { ethers } from "ethers"
 
-import contractABI from "./abi/contractABI.json" assert { type: "json" }
+import contractABI from "./abi/contractABI.json";
+//assert { type: "json" }
 
-import BigNumber from "bignumber.js/bignumber.js"; import delugerouter from "./abi/delugerouter.json" assert { type: "json" }
+import BigNumber from "bignumber.js/bignumber.js"; 
+import delugerouter from "./abi/delugerouter.json";
+//assert { type: "json" }
 
 import { base58 } from "ethers/lib/utils.js";
 
@@ -1475,25 +1478,18 @@ if (text.startsWith('0x') && text.length === 42) {
                         }
                         await openMonitorsSchema.create({ tokenaddress: address, chain: chain, chatid: message.chat.id, messageid: message.message_id, openedat: Date.now(), userid: ctx.message.from.id })
                     }
-                }else if (text.length > 32 && text.length < 45) {
-                    if (!await userinfoSchema.exists({ tgid: ctx.message.from.id })) {
-                        await userinfoSchema.create({ tgid: ctx.message.from.id })
-                    }
-                    const userinfo = await userinfoSchema.findOne({ tgid: ctx.message.from.id })
-                    if (!userinfo.solanaprivatekeys) {
-                        await ctx.reply('❗️ You need to add at least 1 wallet to buy tokens.').catch()
-                    } else {
-                        const message = await ctx.reply('📶 Loading token info...').catch()
-                        await ctx.pinChatMessage(message.message_id)
-                        const { address, pair, name, symbol, balances, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, pairwith } = await getSolanaTokenInfo(text, userinfo.solanaprivatekeys) ?? {};
-                        editSolanaTokenBuyMenu(message.chat.id, message.message_id, address, pair, name, symbol, balances, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, pairwith, undefined)
-                        verifyUserMonitors(message.chat.id)
-                        await openMonitorsSchema.create({ tokenaddress: address, chain: 'sol', chatid: message.chat.id, messageid: message.message_id, openedat: Date.now(), userid: ctx.message.from.id })
-                    }
-                }
-            }
-        }
-    } catch (e) { console.log(e) }
-}).catch()
-
-bot.launch({ dropPendingUpdates: true }).catch()
+                } else if (text.length > 32 && text.length < 45) {
+ if (!await userinfoSchema.exists({ tgid: ctx.message.from.id })) {
+    await userinfoSchema.create({ tgid: ctx.message.from.id });
+    const userinfo = await userinfoSchema.findOne({ tgid: ctx.message.from.id });
+    if (!userinfo.solanaprivatekeys) {
+        await ctx.reply('❗️ You need to add at least 1 wallet to buy tokens.').catch();
+    } else {
+        const message = await ctx.reply('📶 Loading token info...').catch();
+        await ctx.pinChatMessage(message.message_id);
+        const { address, pair, name, symbol, balances, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, pairwith } = await getSolanaTokenInfo(text, userinfo.solanaprivatekeys) ?? {};
+        editSolanaTokenBuyMenu(message.chat.id, message.message_id, address, pair, name, symbol, balances, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, pairwith, undefined);
+        verifyUserMonitors(message.chat.id);
+        await openMonitorsSchema.create({ tokenaddress: address, chain: 'sol', chatid: message.chat.id, messageid: message.message_id, openedat: Date.now(), userid: ctx.message.from.id });
+    }
+}
