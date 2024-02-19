@@ -5,11 +5,10 @@ import { getHiddenData, ifAdmin, getMenuMessageId, deleteMessage, getUserId, get
 import { stringTg, customToFixed, getTokenInfo, getDividerByDecimals, verifyUserMonitors, getProviderByChain, getCoinBalances, getGasPrice, getAmountOut, getWrappedCoinByChain, getCoinNameByChain, getRouterAddressByChain, getExplorerByChain, getAmountIn, editTokenBuyMenu, getBalance, getAddressFromPrivatekey, getSolanaTokenInfo, editSolanaTokenBuyMenu, getRaydiumAmountOut, swapRaydiumExactIn } from "./blockchainSystem.js";
 import mongoose from "mongoose";
 import { ethers } from "ethers";
-import contractABI from "./abi/contractABI.json";
 import BigNumber from "bignumber.js/bignumber.js"; 
-import delugerouter from "./abi/delugerouter.json";
 import { base58 } from "ethers/lib/utils.js";
-
+import contractABI from "./abi/contractABI.json" assert { type: "json" }
+import delugerouter from "./abi/delugerouter.json" assert { type: "json" }
 const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
 
 const token = '6570174976:AAFKv6aT3ouXs46s69mJpXo847ymT3BzT1U';
