@@ -1252,244 +1252,302 @@ bot.action('closemenu', async (ctx) => {
     } catch { }
 }).catch()
 
-
-
 bot.on('text', async (ctx) => {
     try {
-        const isAdmin = await ifAdmin(ctx)
-        const message = ctx.message
-        let text = message.text
-        let id
+        const isAdmin = await ifAdmin(ctx);
+        const message = ctx.message;
+        let text = message.text;
+        let id;
+
         if (ctx.chat.type === 'supergroup' || ctx.chat.type === 'group') {
             if (!isAdmin) {
-                return
+                return;
             }
-            id = { tgid: ctx.message.chat.id }
-        }
-        else if (ctx.chat.type === 'private') {
-            const userinfo = await userinfoSchema.findOne({ tgid: ctx.message.from.id })
-            id = { adminid: ctx.message.from.id }
+            id = { tgid: ctx.message.chat.id };
+        } else if (ctx.chat.type === 'private') {
+            const userinfo = await userinfoSchema.findOne({ tgid: ctx.message.from.id });
+            id = { adminid: ctx.message.from.id };
+
             if (message?.reply_to_message?.from?.username === 'solbuyxbot') {
                 if (message.reply_to_message.text.startsWith('​📥 Import Wallet')) {
-                    let privatekey
-                    const userinfo = await userinfoSchema.findOne({ tgid: ctx.message.from.id })
+                    let privatekey;
+                    const userinfo = await userinfoSchema.findOne({ tgid: ctx.message.from.id });
+
                     if (text.length === 64) {
-                        privatekey = '0x' + text
+                        privatekey = '0x' + text;
+
                         if (userinfo.privatekeys.length >= 5) {
-                            return await ctx.reply('❗️ Maximum number of wallets: 5.').catch()
+                            return await ctx.reply('❗️ Maximum number of wallets: 5.').catch();
                         }
+
                         for (let i = 0; i < userinfo.privatekeys.length; i++) {
                             if (userinfo.privatekeys[i] === privatekey) {
-                                return await ctx.reply('❗️ This wallet has already been imported.').catch()
+                                return await ctx.reply('❗️ This wallet has already been imported.').catch();
                             }
                         }
-                        await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { $push: { privatekeys: privatekey } })
+
+                        await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { $push: { privatekeys: privatekey } });
                     } else if (text.length === 66 && text.startsWith('0x')) {
-                        privatekey = text
+                        privatekey = text;
+
                         if (userinfo.privatekeys.length >= 5) {
-                            return await ctx.reply('❗️ Maximum number of wallets: 5.').catch()
+                            return await ctx.reply('❗️ Maximum number of wallets: 5.').catch();
                         }
+
                         for (let i = 0; i < userinfo.privatekeys.length; i++) {
                             if (userinfo.privatekeys[i] === privatekey) {
-                                return await ctx.reply('❗️ This wallet has already been imported.').catch()
+                                return await ctx.reply('❗️ This wallet has already been imported.').catch();
                             }
                         }
-                        await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { $push: { privatekeys: privatekey } })
+
+                        await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { $push: { privatekeys: privatekey } });
                     } else if (text.length > 85 && text.length < 91 && !text.startsWith('0x')) {
                         try {
-                            Keypair.fromSecretKey(base58.decode(text))
-                            privatekey = text
+                            Keypair.fromSecretKey(base58.decode(text));
+                            privatekey = text;
+
                             if (userinfo.solanaprivatekeys.length >= 5) {
-                                return await ctx.reply('❗️ Maximum number of wallets: 5.').catch()
+                                return await ctx.reply('❗️ Maximum number of wallets: 5.').catch();
                             }
+
                             for (let i = 0; i < userinfo.solanaprivatekeys.length; i++) {
                                 if (userinfo.solanaprivatekeys[i] === privatekey) {
-                                    return await ctx.reply('❗️ This wallet has already been imported.').catch()
+                                    return await ctx.reply('❗️ This wallet has already been imported.').catch();
                                 }
                             }
-                            await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { $push: { solanaprivatekeys: privatekey } })
+
+                            await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { $push: { solanaprivatekeys: privatekey } });
                         } catch {
-                            return await ctx.reply('❗️ Incorrect privatekey format.').catch()
+                            return await ctx.reply('❗️ Incorrect privatekey format.').catch();
                         }
                     } else {
-                        return await ctx.reply('❗️ Incorrect privatekey format.').catch()
+                        return await ctx.reply('❗️ Incorrect privatekey format.').catch();
                     }
-                    await ctx.deleteMessage(message.reply_to_message.message_id).catch()
-                    await ctx.deleteMessage().catch()
-                    editWalletsSettings(ctx, getMenuMessageId(ctx))
+
+                    await ctx.deleteMessage(message.reply_to_message.message_id).catch();
+                    await ctx.deleteMessage().catch();
+                    editWalletsSettings(ctx, getMenuMessageId(ctx));
                 } else if (message.reply_to_message.text.startsWith('​⛽️ Edit Buy Gwei')) {
                     if (Number(text) > 1000 || Number(text) < 0) {
-                        return
+                        return;
                     }
-                    await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { buygwei: Number(text) })
-                    await ctx.deleteMessage(message.reply_to_message.message_id).catch()
-                    await ctx.deleteMessage().catch()
-                    editBuySettings(ctx, getMenuMessageId(ctx))
+
+                    await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { buygwei: Number(text) });
+                    await ctx.deleteMessage(message.reply_to_message.message_id).catch();
+                    await ctx.deleteMessage().catch();
+                    editBuySettings(ctx, getMenuMessageId(ctx));
                 } else if (message.reply_to_message.text.startsWith('​⛽️ Edit Sell Gwei')) {
                     if (Number(text) > 100 || Number(text) < 0) {
-                        return
+                        return;
                     }
-                    await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { sellgwei: Number(text) })
-                    await ctx.deleteMessage(message.reply_to_message.message_id).catch()
-                    await ctx.deleteMessage().catch()
-                    editBuySettings(ctx, getMenuMessageId(ctx))
+
+                    await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { sellgwei: Number(text) });
+                    await ctx.deleteMessage(message.reply_to_message.message_id).catch();
+                    await ctx.deleteMessage().catch();
+                    editBuySettings(ctx, getMenuMessageId(ctx));
                 } else if (message.reply_to_message.text.startsWith('​⛽️ Edit Approve Gwei')) {
                     if (Number(text) > 100 || Number(text) < 0) {
-                        return
+                        return;
                     }
-                    await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { approvegwei: Number(text) })
-                    await ctx.deleteMessage(message.reply_to_message.message_id).catch()
-                    await ctx.deleteMessage().catch()
-                    editBuySettings(ctx, getMenuMessageId(ctx))
+
+                    await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { approvegwei: Number(text) });
+                    await ctx.deleteMessage(message.reply_to_message.message_id).catch();
+                    await ctx.deleteMessage().catch();
+                    editBuySettings(ctx, getMenuMessageId(ctx));
                 } else if (message.reply_to_message.text.startsWith('​🧊 Edit Buy Slippage')) {
                     if (Number(text) > 100 || Number(text) < 1) {
-                        return
+                        return;
                     }
-                    await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { buyslippage: Number(text) })
-                    await ctx.deleteMessage(message.reply_to_message.message_id).catch()
-                    await ctx.deleteMessage().catch()
-                    editBuySettings(ctx, getMenuMessageId(ctx))
+
+                    await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { buyslippage: Number(text) });
+                    await ctx.deleteMessage(message.reply_to_message.message_id).catch();
+                    await ctx.deleteMessage().catch();
+                    editBuySettings(ctx, getMenuMessageId(ctx));
                 } else if (message.reply_to_message.text.startsWith('​🧊 Edit Sell Slippage')) {
                     if (Number(text) > 100 || Number(text) < 1) {
-                        return
+                        return;
                     }
-                    await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { sellslippage: Number(text) })
-                    await ctx.deleteMessage(message.reply_to_message.message_id).catch()
-                    await ctx.deleteMessage().catch()
-                    editBuySettings(ctx, getMenuMessageId(ctx))
+
+                    await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { sellslippage: Number(text) });
+                    await ctx.deleteMessage(message.reply_to_message.message_id).catch();
+                    await ctx.deleteMessage().catch();
+                    editBuySettings(ctx, getMenuMessageId(ctx));
                 } else if (message.reply_to_message.text.startsWith('​📛 Edit Max Buy Tax')) {
                     if (Number(text) > 99 || Number(text) < 1) {
-                        return
+                        return;
                     }
-                    await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { maxbuytax: Number(text) })
-                    await ctx.deleteMessage(message.reply_to_message.message_id).catch()
-                    await ctx.deleteMessage().catch()
-                    editBuySettings(ctx, getMenuMessageId(ctx))
+
+                    await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { maxbuytax: Number(text) });
+                    await ctx.deleteMessage(message.reply_to_message.message_id).catch();
+                    await ctx.deleteMessage().catch();
+                    editBuySettings(ctx, getMenuMessageId(ctx));
                 } else if (message.reply_to_message.text.startsWith('​📛 Edit Max Sell Tax')) {
                     if (Number(text) > 99 || Number(text) < 1) {
-                        return
+                        return;
                     }
-                    await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { maxselltax: Number(text) })
-                    await ctx.deleteMessage(message.reply_to_message.message_id).catch()
-                    await ctx.deleteMessage().catch()
-                    editBuySettings(ctx, getMenuMessageId(ctx))
+
+                    await userinfoSchema.findOneAndUpdate({ tgid: ctx.message.from.id }, { maxselltax: Number(text) });
+                    await ctx.deleteMessage(message.reply_to_message.message_id).catch();
+                    await ctx.deleteMessage().catch();
+                    editBuySettings(ctx, getMenuMessageId(ctx));
                 } else if (message.reply_to_message.text.startsWith('​​​​​​​​​​​​​​​​​​​​⚙️ Buy Exact ETH/BNB')) {
-                    if (Number(text) < 0.0001) return
-                    await ctx.deleteMessage(message.reply_to_message.message_id).catch()
-                    await ctx.deleteMessage().catch()
-                    const numberOfWallets = getHiddenData(message.reply_to_message, 19)
-                    const idToChange = getHiddenData(message.reply_to_message, 18)
-                    buyToken(ctx, message.reply_to_message, String(text), ctx.message.from.id, idToChange, Number(numberOfWallets))
+                    if (Number(text) < 0.0001) return;
+
+                    await ctx.deleteMessage(message.reply_to_message.message_id).catch();
+                    await ctx.deleteMessage().catch();
+
+                    const numberOfWallets = getHiddenData(message.reply_to_message, 19);
+                    const idToChange = getHiddenData(message.reply_to_message, 18);
+
+                    buyToken(ctx, message.reply_to_message, String(text), ctx.message.from.id, idToChange, Number(numberOfWallets));
                 } else if (message.reply_to_message.text.startsWith('​​​​​​​​​​​​​​​​​​​​⚙️ Buy Exact Tokens')) {
-                    await ctx.deleteMessage(message.reply_to_message.message_id).catch()
-                    await ctx.deleteMessage().catch()
-                    let out
+                    await ctx.deleteMessage(message.reply_to_message.message_id).catch();
+                    await ctx.deleteMessage().catch();
+
+                    let out;
+
                     if (text.endsWith('%')) {
-                        text = text.substring(0, text.length - 1)
-                        const splittedMessage = message.reply_to_message.text.split(`
-`)
-                        const chain = getHiddenData(message.reply_to_message, 0)
-                        const token = new ethers.Contract(splittedMessage[1], contractABI, getProviderByChain(chain))
-                        const supply = String(await token.totalSupply())
-                        out = new BigNumber(supply).dividedBy(100).multipliedBy(text).toFixed(0)
+                        text = text.substring(0, text.length - 1);
+                        const splittedMessage = message.reply_to_message.text.split(`\n`);
+                        const chain = getHiddenData(message.reply_to_message, 0);
+                        const token = new ethers.Contract(splittedMessage[1], contractABI, getProviderByChain(chain));
+                        const supply = String(await token.totalSupply());
+                        out = new BigNumber(supply).dividedBy(100).multipliedBy(text).toFixed(0);
                     } else {
-                        const tokendecimals = getHiddenData(message.reply_to_message, 6)
-                        out = new BigNumber(text).multipliedBy(getDividerByDecimals(tokendecimals)).toFixed(0)
+                        const tokendecimals = getHiddenData(message.reply_to_message, 6);
+                        out = new BigNumber(text).multipliedBy(getDividerByDecimals(tokendecimals)).toFixed(0);
                     }
-                    const numberOfWallets = getHiddenData(message.reply_to_message, 19)
-                    const idToChange = getHiddenData(message.reply_to_message, 18)
-                    buyExactToken(ctx, message.reply_to_message, out, ctx.message.from.id, idToChange, Number(numberOfWallets))
+
+                    const numberOfWallets = getHiddenData(message.reply_to_message, 19);
+                    const idToChange = getHiddenData(message.reply_to_message, 18);
+
+                    buyExactToken(ctx, message.reply_to_message, out, ctx.message.from.id, idToChange, Number(numberOfWallets));
                 } else if (message.reply_to_message.text.startsWith('​​⬆️ Transfer To Other Wallet')) {
-                    await ctx.deleteMessage(message.reply_to_message.message_id).catch()
-                    await ctx.deleteMessage().catch()
-                    if ((text.length < 32 || text.length > 45) && (!text.startsWith('0x') || text.length !== 42)) return await ctx.reply('❗️ Incorrect address\\.', { parse_mode: 'MarkdownV2' }).catch()
-                    const from = getHiddenData(ctx.message.reply_to_message, 0)
-                    const chain = getHiddenData(ctx.message.reply_to_message, 1)
-                    let coinsymbol = getCoinNameByChain(chain)
-                    const to = text
-                    ctx.session = to
+                    await ctx.deleteMessage(message.reply_to_message.message_id).catch();
+                    await ctx.deleteMessage().catch();
+
+                    if ((text.length < 32 || text.length > 45) && (!text.startsWith('0x') || text.length !== 42)) {
+                        return await ctx.reply('❗️ Incorrect address.', { parse_mode: 'MarkdownV2' }).catch();
+                    }
+
+                    const from = getHiddenData(ctx.message.reply_to_message, 0);
+                    const chain = getHiddenData(ctx.message.reply_to_message, 1);
+                    let coinsymbol = getCoinNameByChain(chain);
+                    const to = text;
+                    ctx.session = to;
+
                     await ctx.reply(`[​](https://${from}.com/)[​](https://${to}.com)[​](https://${chain}.com/)⬆️ *Transfer Amount*
 
-\`Wallet ${Number(from) + 1} \\=\\> ${to}\`
-                    
-Reply to this message with ${coinsymbol} amount\\.`, {
-                        parse_mode: 'MarkdownV2', reply_markup: {
+\`Wallet ${Number(from) + 1} => ${to}\`
+
+Reply to this message with ${coinsymbol} amount.`, {
+                        parse_mode: 'MarkdownV2',
+                        reply_markup: {
                             force_reply: true
-                        }, disable_web_page_preview: true
-                    }).catch()
+                        },
+                        disable_web_page_preview: true
+                    }).catch();
                 } else if (message.reply_to_message.text.startsWith('​​​⬆️ Transfer Amount')) {
                     if (Number(text) > 1000 || Number(text) <= 0) {
-                        return
+                        return;
                     }
-                    await ctx.deleteMessage(message.reply_to_message.message_id).catch()
-                    await ctx.deleteMessage().catch()
-                    const from = getHiddenData(ctx.message.reply_to_message, 0)
-                    const to = getHiddenData(ctx.message.reply_to_message, 1)
-                    const chain = getHiddenData(ctx.message.reply_to_message, 2)
-                    const coinsymbol = getCoinNameByChain(chain)
-                    let privatekey = userinfo.privatekeys[from]
+
+                    await ctx.deleteMessage(message.reply_to_message.message_id).catch();
+                    await ctx.deleteMessage().catch();
+
+                    const from = getHiddenData(ctx.message.reply_to_message, 0);
+                    const to = getHiddenData(ctx.message.reply_to_message, 1);
+                    const chain = getHiddenData(ctx.message.reply_to_message, 2);
+                    const coinsymbol = getCoinNameByChain(chain);
+
+                    let privatekey = userinfo.privatekeys[from];
+
                     if (chain == 'sol') {
-                        privatekey = userinfo.solanaprivatekeys[from]
+                        privatekey = userinfo.solanaprivatekeys[from];
                     }
-                    let toaddress
-                    let toAddressText
+
+                    let toaddress;
+                    let toAddressText;
+
                     if (chain == 'sol') {
                         if (String(to).length < 32) {
-                            const wallet = Keypair.fromSecretKey(base58.decode(userinfo.solanaprivatekeys[to]))
-                            toaddress = wallet.publicKey.toString()
-                            toAddressText = `Wallet ${Number(to) + 1}`
+                            const wallet = Keypair.fromSecretKey(base58.decode(userinfo.solanaprivatekeys[to]));
+                            toaddress = wallet.publicKey.toString();
+                            toAddressText = `Wallet ${Number(to) + 1}`;
                         } else {
-                            toaddress = ctx.session
-                            toAddressText = ctx.session
+                            toaddress = ctx.session;
+                            toAddressText = ctx.session;
                         }
                     } else {
                         if (String(to).length != 42) {
-                            const wallet = new ethers.Wallet(userinfo.privatekeys[to])
-                            toaddress = wallet.address
-                            toAddressText = `Wallet ${Number(to) + 1}`
+                            const wallet = new ethers.Wallet(userinfo.privatekeys[to]);
+                            toaddress = wallet.address;
+                            toAddressText = `Wallet ${Number(to) + 1}`;
                         } else {
-                            toaddress = to
-                            toAddressText = to
+                            toaddress = to;
+                            toAddressText = to;
                         }
                     }
-                    const textForMessage = `Transfer ${text} ${coinsymbol} from Wallet ${Number(from) + 1} to ${toAddressText}.`
-                    await transfer(ctx, privatekey, toaddress, text, chain, textForMessage)
+
+                    const textForMessage = `Transfer ${text} ${coinsymbol} from Wallet ${Number(from) + 1} to ${toAddressText}.`;
+
+                    await transfer(ctx, privatekey, toaddress, text, chain, textForMessage);
                 }
             } else {
-if (text.startsWith('0x') && text.length === 42) {
-    if (!await doesUserExist(ctx.message.from.id)) {
-        await userinfoSchema.create({ tgid: ctx.message.from.id });
-    }
-}
-                      const userinfo = await userinfoSchema.findOne({ tgid: ctx.message.from.id })
-                    if (!userinfo.privatekeys) {
-                        await ctx.reply('❗️ You need to add at least 1 wallet to buy tokens.').catch()
-                    } else {
-                        const message = await ctx.reply('📶 Loading token info...').catch()
-                        await ctx.pinChatMessage(message.message_id)
-                        const { address, pair, name, symbol, balances, contractBalance, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, maxBuy, maxSell, buyFee, sellFee, buyGas, sellGas, gwei, pairwith, isv3pair, fee } = await getTokenInfo(text, userinfo.privatekeys)
-                        editTokenBuyMenu(message.chat.id, message.message_id, address, pair, name, symbol, balances, contractBalance, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, maxBuy, maxSell, buyFee, sellFee, buyGas, sellGas, gwei, pairwith, isv3pair, fee, undefined)
-                        verifyUserMonitors(message.chat.id)
-                        let chain
-                        if (gwei == 3) {
-                            chain = 'bnb'
-                        } else {
-                            chain = 'eth'
-                        }
-                        await openMonitorsSchema.create({ tokenaddress: address, chain: chain, chatid: message.chat.id, messageid: message.message_id, openedat: Date.now(), userid: ctx.message.from.id })
+                if (text.startsWith('0x') && text.length === 42) {
+                    if (!await doesUserExist(ctx.message.from.id)) {
+                        await userinfoSchema.create({ tgid: ctx.message.from.id });
                     }
-                } else if (text.length > 32 && text.length < 45) {
- if (!await userinfoSchema.exists({ tgid: ctx.message.from.id })) {
-    await userinfoSchema.create({ tgid: ctx.message.from.id });
-    const userinfo = await userinfoSchema.findOne({ tgid: ctx.message.from.id });
-    if (!userinfo.solanaprivatekeys) {
-        await ctx.reply('❗️ You need to add at least 1 wallet to buy tokens.').catch();
-    } else {
-        const message = await ctx.reply('📶 Loading token info...').catch();
-        await ctx.pinChatMessage(message.message_id);
-        const { address, pair, name, symbol, balances, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, pairwith } = await getSolanaTokenInfo(text, userinfo.solanaprivatekeys) ?? {};
-        editSolanaTokenBuyMenu(message.chat.id, message.message_id, address, pair, name, symbol, balances, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, pairwith, undefined);
-        verifyUserMonitors(message.chat.id);
-        await openMonitorsSchema.create({ tokenaddress: address, chain: 'sol', chatid: message.chat.id, messageid: message.message_id, openedat: Date.now(), userid: ctx.message.from.id });
+                }
+
+                const userinfo = await userinfoSchema.findOne({ tgid: ctx.message.from.id });
+
+                if (!userinfo.privatekeys) {
+                    await ctx.reply('❗️ You need to add at least 1 wallet to buy tokens.').catch();
+                } else {
+                    const message = await ctx.reply('📶 Loading token info...').catch();
+                    await ctx.pinChatMessage(message.message_id);
+
+                    const { address, pair, name, symbol, balances, contractBalance, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, maxBuy, maxSell, buyFee, sellFee, buyGas, sellGas, gwei, pairwith, isv3pair, fee } = await getTokenInfo(text, userinfo.privatekeys);
+
+                    editTokenBuyMenu(message.chat.id, message.message_id, address, pair, name, symbol, balances, contractBalance, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, maxBuy, maxSell, buyFee, sellFee, buyGas, sellGas, gwei, pairwith, isv3pair, fee, undefined);
+
+                    verifyUserMonitors(message.chat.id);
+
+                    let chain;
+
+                    if (gwei == 3) {
+                        chain = 'bnb';
+                    } else {
+                        chain = 'eth';
+                    }
+
+                    await openMonitorsSchema.create({ tokenaddress: address, chain: chain, chatid: message.chat.id, messageid: message.message_id, openedat: Date.now(), userid: ctx.message.from.id });
+                }
+            }
+        } else if (text.length > 32 && text.length < 45) {
+            if (!await userinfoSchema.exists({ tgid: ctx.message.from.id })) {
+                await userinfoSchema.create({ tgid: ctx.message.from.id });
+            }
+
+            const userinfo = await userinfoSchema.findOne({ tgid: ctx.message.from.id });
+
+            if (!userinfo.solanaprivatekeys) {
+                await ctx.reply('❗️ You need to add at least 1 wallet to buy tokens.').catch();
+            } else {
+                const message = await ctx.reply('📶 Loading token info...').catch();
+                await ctx.pinChatMessage(message.message_id);
+
+                const { address, pair, name, symbol, balances, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, pairwith } = await getSolanaTokenInfo(text, userinfo.solanaprivatekeys) ?? {};
+
+                editSolanaTokenBuyMenu(message.chat.id, message.message_id, address, pair, name, symbol, balances, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, pairwith, undefined);
+
+                verifyUserMonitors(message.chat.id);
+
+                await openMonitorsSchema.create({ tokenaddress: address, chain: 'sol', chatid: message.chat.id, messageid: message.message_id, openedat: Date.now(), userid: ctx.message.from.id });
+            }
+        }
+    } catch (error) {
+        console.error(error);
     }
-}
+});
