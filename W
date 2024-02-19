@@ -1,0 +1,328 @@
+// Your code snippet goes here.
+
+const connection = new Connection('https://api.mainnet-beta.solana.com', 'confirmed');
+const token = 'YOUR_TELEGRAM_BOT_TOKEN';
+const bot = new Telegraf(token);
+mongoose.connect('YOUR_MONGODB_CONNECTION_STRING');
+bot.use(session());
+
+// Listen for the /start command
+bot.start((ctx) => {
+    const chatId = ctx.chat.id;
+    const welcomeMessage = `
+👋 Welcome to SolanaBuyBot!
+Solana's fastest bot to trade any coin (SPL token), and Delight's official Telegram trading bot.. 
+Feel free to explore and use the available commands. If you are just starting out, just type /panel to be able to create and manage multiple wallets.
+Your private key and wallet address is provided to you on wallet creation, once you send funds you can click refresh to see your current balance and other useful data.
+To buy a token just enter a token address
+Happy chatting!`;
+    // Send the welcome message to the user
+    ctx.reply(welcomeMessage);
+});
+
+async function buySolToken(ctxToAnswer, messageWithInfo, value, usertgid, messageIdWithInfoToChange, numberofwallets) {
+    try {
+        const userinfo = await userinfoSchema.findOne({ tgid: usertgid });
+        const splittedMessage = messageWithInfo.text.split(`\n`);
+        const chain = getHiddenData(messageWithInfo, 0);
+        const pairwith = getHiddenData(messageWithInfo, 1);
+        const tokendecimals = getHiddenData(messageWithInfo, 2);
+        const pair = getHiddenData(messageWithInfo, 3);
+        const tokenSymbol = getHiddenData(messageWithInfo, 4).toUpperCase();
+        const balance1 = getHiddenData(messageWithInfo, 5);
+        const balance2 = getHiddenData(messageWithInfo, 6);
+        const balance3 = getHiddenData(messageWithInfo, 7);
+        const balance4 = getHiddenData(messageWithInfo, 8);
+        const balance5 = getHiddenData(messageWithInfo, 9);
+        const balances = [balance1, balance2, balance3, balance4, balance5];
+        const coinbalances = await getCoinBalances(userinfo.solanaprivatekeys, 'sol');
+        let walletsToBuy = [];
+        for (let x = 0; x < coinbalances.length && walletsToBuy.length != numberofwallets; x++) {
+            console.log(new BigNumber(coinbalances[x]).toFixed(), new BigNumber(String(ethers.utils.parseUnits(value, 10))).plus(String(ethers.utils.parseUnits('0.008', 10))).toFixed());
+            if (new BigNumber(coinbalances[x]).gt(new BigNumber(String(ethers.utils.parseUnits(value, 10))).plus(String(ethers.utils.parseUnits('0.008', 10))))) {
+                walletsToBuy.push({ privatekey: userinfo.solanaprivatekeys[x], balance: coinbalances[x] });
+            }
+        }
+        const wrappedCoin = new PublicKey('So11111111111111111111111111111111111111112');
+        if (walletsToBuy.length !== 0) {
+            if (walletsToBuy.length < numberofwallets) {
+                await ctxToAnswer.reply(`ℹ️ You have only ${walletsToBuy.length}/${numberofwallets} wallets with enough balance to buy, buying from ${walletsToBuy.length} wallets...`).catch();
+            }
+            for (let i = 0; i < walletsToBuy.length; i++) {
+                const walletToBuy = walletsToBuy[i];
+                const amountOut = await getRaydiumAmountOut(wrappedCoin, splittedMessage[2], String(ethers.utils.parseUnits(value, 9)));
+                const amountOutMin = new BigNumber(amountOut).dividedBy(100).multipliedBy((100 - Number(userinfo.buyslippage))).toFixed(0);
+                const normAmountOutMin = stringTg(customToFixed(new BigNumber(amountOutMin).dividedBy(getDividerByDecimals(tokendecimals)).toFixed()).toLocaleString());
+                const signature = await swapRaydiumExactIn(splittedMessage[2], new PublicKey(wrappedCoin), new PublicKey(splittedMessage[1]), String(ethers.utils.parseUnits(value, 9)), amountOutMin, Keypair.fromSecretKey(base58.decode(walletToBuy.privatekey)));
+                const message = await ctxToAnswer.reply(`🟡 Your transaction sent:\n\n*Swap ${stringTg(value)} ${getCoinNameByChain(chain)} for at least ${normAmountOutMin} ${stringTg(tokenSymbol)}.*\n\n${stringTg(`https://${getExplorerByChain(chain)}/tx/${signature}`)}`, {
+                    parse_mode: 'MarkdownV2'
+                }).catch();
+                try {
+                    connection.confirmTransaction({ signature: signature }, 'confirmed').then(async () => {
+                        try {
+                            await bot.telegram.editMessageText(ctxToAnswer.chat.id, message.message_id, 0, `🟢 Your transaction succeed:\n\n*Swap ${stringTg(value)} ${getCoinNameByChain(chain)} for at least ${normAmountOutMin} ${stringTg(tokenSymbol)}.*\n\n${stringTg(`https://${getExplorerByChain(chain)}/tx/${signature}`)}`, {
+                                parse_mode: 'MarkdownV2', reply_markup: {
+                                    inline_keyboard: [
+                                        [{ text: `OK`, callback_data: 'closemenu' }]
+                                    ]
+                                }
+                            }).catch();
+                        } catch { }
+                        if (i == walletsToBuy.length - 1) {
+                            try {
+                                const { address, pair, name, symbol, balances, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, pairwith } = await getSolanaTokenInfo(splittedMessage[1], userinfo.solanaprivatekeys);
+                                editSolanaTokenBuyMenu(message.chat.id, message.message_id, address, pair, name, symbol, balances, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, pairwith, undefined);
+                                await ctx.answerCbQuery('Monitor Successfully Refreshed.');
+                            } catch { }
+                        }
+                    });
+                } catch {
+                    try {
+                        await bot.telegram.editMessageText(ctxToAnswer.chat.id, message.message_id, 0, `🔴 Your transaction failed:\n\n*Swap ${stringTg(value)} ${getCoinNameByChain(chain)} for at least ${normAmountOutMin} ${stringTg(tokenSymbol)}.*\n\n${stringTg(`https://${getExplorerByChain(chain)}/tx/${tx.hash}`)}`, {
+                            parse_mode: 'MarkdownV2', reply_markup: {
+                                inline_keyboard: [
+                                    [{ text: `OK`, callback_data: 'closemenu' }]
+                                ]
+                            }
+                        }).catch();
+                        if (i == walletsToBuy.length - 1) {
+                            try {
+                                const { address, pair, name, symbol, balances, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, pairwith } = await getSolanaTokenInfo(splittedMessage[1], userinfo.solanaprivatekeys);
+                                editSolanaTokenBuyMenu(message.chat.id, message.message_id, address, pair, name, symbol, balances, price, coinprice, tokendecimals, coindecimals, coinsymbol, explorer, chart, totalSupply, pairwith, undefined);
+                                await ctx.answerCbQuery('Monitor Successfully Refreshed.');
+                            } catch { }
+                        }
+                    } catch { }
+                }
+                try {
+                    if (ctxToAnswer.callbackQuery) {
+                        await ctxToAnswer.answerCbQuery();
+                    }
+                } catch { }
+            }
+        } else {
+            await ctxToAnswer.reply(`ℹ️ 0 of your wallets have enough ${getCoinNameByChain(chain)} to buy and pay gas fees!`).catch();
+            const message = await ctxToAnswer.reply(`📶 Loading your wallets...`).catch();
+            return editWalletsSettings(ctxToAnswer, message.message_id);
+        }
+    } catch (e) { console.log(e) }
+}
+
+async function buyToken(ctxToAnswer, messageWithInfo, value, usertgid, messageIdWithInfoToChange, numberofwallets) {
+    try {
+        const userinfo = await getUserInfo(usertgid);
+        const { chain, buyGas, sellGas, buyFee, sellFee, pairwith, tokendecimals, pair, isv3pair, fee, tokenSymbol, maxBuy, maxSell, balances } = parseMessageInfo(messageWithInfo);
+        const chainInfo = await getChainInfo(chain);
+        const coinbalances = await getCoinBalances(userinfo.privatekeys, getProviderByChain(chain));
+        const buyGasPrice = getGasPrice(buyGas, chainInfo.gwei + userinfo.buygwei);
+        if (buyFee > userinfo.maxbuytax || sellFee > userinfo.maxselltax) {
+            await handleMaxTaxExceeded(ctxToAnswer);
+            return await editBuySettings(ctxToAnswer, messageIdWithInfoToChange);
+        }
+        const walletsToBuy = selectWalletsToBuy(coinbalances, value, buyGasPrice, numberofwallets);
+        for (let i = 0; i < walletsToBuy.length; i++) {
+            const walletToBuy = walletsToBuy[i];
+            const tx = await executeTransaction(walletToBuy, chain, pairwith, pair, isv3pair, fee, value, tokendecimals, tokenSymbol, buyFee, userinfo);
+            await handleTransactionResult(ctxToAnswer, tx, value, tokenSymbol, chainInfo, messageIdWithInfoToChange, i === walletsToBuy.length - 1);
+        }
+    } catch (error) {
+        console.error('Error in buyToken function:', error);
+        await handleTransactionError(ctxToAnswer);
+    }
+}
+
+async function buyExactToken(ctxToAnswer, messageWithInfo, out, usertgid, messageIdWithInfoToChange, numberofwallets) {
+    try {
+        const userinfo = await getUserInfo(usertgid);
+        const { chain, buyGas, sellGas, buyFee, sellFee, pairwith, tokendecimals, pair, isv3pair, fee, tokenSymbol, maxBuy, maxSell, balances } = parseMessageInfo(messageWithInfo);
+        const chainInfo = await getChainInfo(chain);
+        const provider = getProviderByChain(chain);
+        const coinbalances = await getCoinBalances(userinfo.privatekeys, provider);
+        const buyGasPrice = getGasPrice(buyGas, chainInfo.gwei + userinfo.buygwei);
+        if (buyFee > userinfo.maxbuytax || sellFee > userinfo.maxselltax) {
+            await handleMaxTaxExceeded(ctxToAnswer);
+            return await editBuySettings(ctxToAnswer, messageIdWithInfoToChange);
+        }
+        const wrappedCoin = getWrappedCoinByChain(chain);
+        let path, fee1, fee2;
+        if (pairwith !== '0x0000000000000000000000000000000000000000') {
+            path = [wrappedCoin, pairwith, messageWithInfo[1]];
+            fee1 = 500;
+            fee2 = fee;
+        } else {
+            path = [wrappedCoin, messageWithInfo[1]];
+            fee1 = fee;
+            fee2 = 500;
+        }
+        const amountIn = await getAmountIn(path, out, isv3pair, fee, chain);
+        const amountInMax = new BigNumber(amountIn).times(1 + buyFee + Number(userinfo.buyslippage)).toFixed(0);
+        let walletsToBuy = [];
+        for (let x = 0; x < coinbalances.length && walletsToBuy.length != numberofwallets; x++) {
+            if (new BigNumber(coinbalances[x]).gt(new BigNumber(amountInMax).plus(buyGasPrice / 10 * 12))) {
+                walletsToBuy.push({ privatekey: userinfo.privatekeys[x], balance: coinbalances[x] });
+            }
+        }
+        if (walletsToBuy.length !== 0) {
+            if (walletsToBuy.length < numberofwallets) {
+                await ctxToAnswer.reply(`ℹ️ You have only ${walletsToBuy.length}/${numberofwallets} wallets with enough balance to buy, buying from ${walletsToBuy.length} wallets...`).catch();
+            }
+            for (let i = 0; i < walletsToBuy.length; i++) {
+                const walletToBuy = walletsToBuy[i];
+                const normAmountInMax = stringTg(customToFixed(new BigNumber(amountInMax).dividedBy(getDividerByDecimals(18)).toFixed()).toLocaleString());
+                const normAmountOut = stringTg(customToFixed(new BigNumber(out).dividedBy(getDividerByDecimals(tokendecimals)).toFixed()).toLocaleString());
+                const tx = await executeBuyExactTokenTransaction(walletToBuy, chain, pairwith, pair, isv3pair, fee, out, tokenSymbol, buyFee, userinfo, buyGasPrice, path, fee1, fee2, amountInMax);
+                await handleTransactionResult(ctxToAnswer, tx, out, tokenSymbol, chainInfo, messageIdWithInfoToChange, i === walletsToBuy.length - 1);
+            }
+            await refreshMonitor(ctxToAnswer, splittedMessage[1], userinfo);
+        } else {
+            await handleInsufficientFunds(ctxToAnswer, chain);
+        }
+    } catch (error) {
+        console.error('Error in buyExactToken function:', error);
+        await handleTransactionError(ctxToAnswer);
+    }
+}
+
+async function editWalletsSettings(ctx, messageid) {
+    try {
+        const id = getUserId(ctx);
+        const userinfo = await userinfoSchema.findOneAndUpdate({ tgid: id }, { $set: { lastseen: Date.now() } }, { upsert: true, new: true });
+        let explorer = 'etherscan.io';
+        let explorername = 'Etherscan';
+        let refreshbutton = [{ text: '🟢 Refresh', callback_data: 'switchtoeth' }];
+        let switchbutton = [{ text: '🔄 Switch To BNB Chain', callback_data: 'switchtobnb' }];
+        if (userinfo.menuchain === 'bnb') {
+            explorer = 'bscscan.com';
+            explorername = 'Bscscan';
+            refreshbutton = [{ text: '🟢 Refresh', callback_data: 'switchtobnb' }];
+            switchbutton = [{ text: '🔄 Switch To SOL Chain', callback_data: 'switchtosol' }];
+        } else if (userinfo.menuchain === 'sol') {
+            explorer = 'solscan.io';
+            explorername = 'Solscan';
+            refreshbutton = [{ text: '🟢 Refresh', callback_data: 'switchtosol' }];
+            switchbutton = [{ text: '🔄 Switch To ETH Chain', callback_data: 'switchtoeth' }];
+        }
+        // Rest of the code...
+
+// Revised Code
+
+async function generateWalletsMarkup(userinfo, explorer, explorername) {
+    let wallets = '🚫 No wallets found.';
+    let switchbutton = [];
+    let refreshbutton = [{ text: '🔄 Refresh', callback_data: 'switchtosell' }];
+    let firstline = [], secondline = [], thirdline = [];
+
+    for (let i = 0; i < userinfo.privatekeys.length; i++) {
+        const address = getAddressFromPrivatekey(userinfo.privatekeys[i], userinfo.menuchain);
+        const balance = await getBalance(address, userinfo.menuchain);
+
+        wallets += `\n💳 ${i + 1} - Balance: ${stringTg(balance)} ${userinfo.coinsymbol} | [${explorername}](https://${explorer}/address/${address})\n\`${address}\`\n`;
+
+        if (i === 0) {
+            switchbutton.unshift({ text: `🏧 Transfer ${userinfo.coinsymbol}`, callback_data: 'transfereth' });
+        }
+
+        const deleteButton = { text: `🗑 Delete Wallet ${i + 1}`, callback_data: `isdeletewallet${i + 1}` };
+        if (i <= 1) {
+            firstline.push(deleteButton);
+        } else if (i > 1 && i <= 3) {
+            secondline.push(deleteButton);
+        } else if (i > 2 && i <= 5) {
+            thirdline.push(deleteButton);
+        }
+    }
+
+    const inline_keyboard = [
+        firstline, secondline, thirdline, [],
+        [{ text: '📥 Import New Wallet', callback_data: 'importwallet' }, { text: '➕ Generate New Wallet', callback_data: 'generatewallet' }],
+        [{ text: '🔙 Back', callback_data: 'edittopanel' }]
+    ];
+
+    inline_keyboard.unshift(switchbutton, refreshbutton);
+
+    return `🔐 *All added wallets:*\n\n${wallets}`;
+}
+
+async function editBuySettings(ctx, messageid) {
+    try {
+        let userId;
+        if (ctx.chat.type === 'private') {
+            userId = ctx.callbackQuery ? ctx.callbackQuery.from.id : ctx.message.from.id;
+        } else {
+            throw new Error('This command is only available in private chats.');
+        }
+
+        const userInfo = await getUserInfo(userId);
+
+        const messageText = generateSettingsMessage(userInfo);
+
+        const inlineKeyboard = generateSettingsKeyboard(userInfo);
+
+        await bot.telegram.editMessageText(ctx.chat.id, messageid, null, messageText, {
+            parse_mode: 'MarkdownV2',
+            reply_markup: {
+                inline_keyboard: inlineKeyboard
+            },
+            disable_web_page_preview: true
+        });
+    } catch (error) {
+        console.log("Error:", error.message);
+    }
+}
+
+async function editPanelSettings(ctx, messageid) {
+    try {
+        let id;
+        if (ctx.chat.type === 'private') {
+            id = { tgid: ctx.callbackQuery.from.id };
+        } else {
+            throw new Error('This command is only available in private chats.');
+        }
+
+        if (!await userinfoSchema.exists(id)) {
+            await userinfoSchema.create(id);
+        }
+
+        const replyMarkup = {
+            inline_keyboard: [
+                [{ text: '⚙️ Tx Settings', callback_data: 'edittobuysettings' }],
+                [{ text: '💼 Manage Wallets', callback_data: 'edittomanagewallets' }]
+            ]
+        };
+
+        const options = {
+            parse_mode: 'MarkdownV2',
+            reply_markup: replyMarkup,
+            disable_web_page_preview: true
+        };
+
+        if (messageid) {
+            await bot.telegram.editMessageText(ctx.chat.id, messageid, null, '🖥️ *Your Settings:*', options);
+        } else {
+            await ctx.editMessageText('🖥️ *Your Settings:*', options);
+        }
+    } catch (error) {
+        console.log("Error:", error.message);
+    }
+}
+
+// Edit Menu Actions
+bot.action('edittopanel', async (ctx) => {
+    try {
+        editPanelSettings(ctx);
+    } catch (error) {
+        console.log("Error:", error.message);
+    }
+});
+
+bot.action('switchtobnb', async (ctx) => {
+    try {
+        // Switch to BNB logic
+    } catch (error) {
+        console.log("Error:", error.message);
+    }
+});
+
+// Add other action handlers similarly
+
+// Additional action handlers and functions would be added here
